@@ -27,6 +27,22 @@
   },
   {
     "ContainingType": "RaceDayManagementAPI.Controllers.AuthController",
+    "Method": "UpdateMe",
+    "RelativePath": "api/Auth/me",
+    "HttpMethod": "PUT",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "updated",
+        "Type": "RaceDayManagementAPI.Models.User",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "RaceDayManagementAPI.Controllers.AuthController",
     "Method": "Register",
     "RelativePath": "api/Auth/register",
     "HttpMethod": "POST",

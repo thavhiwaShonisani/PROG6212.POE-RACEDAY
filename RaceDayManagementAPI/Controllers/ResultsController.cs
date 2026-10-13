@@ -21,24 +21,67 @@ namespace RaceDayManagementAPI.Controllers
         private int CurrentUserId => User.GetUserId();
 
         // GET: api/results
+        // Participant → only their own results
+        // Organiser   → results for events they organise
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Result>>> GetResults()
         {
-            return await _db.Results
-                            .AsNoTracking()
-                            .ToListAsync();
+            var role = User.GetRole();
+            var id = User.GetUserId();
+
+            var query = _db.Results
+                           .Include(r => r.Enrolment)
+                               .ThenInclude(e => e!.Participant)
+                           .Include(r => r.Enrolment)
+                               .ThenInclude(e => e!.Category)
+                           .AsNoTracking();
+
+            if (role == "Participant")
+            {
+                query = query.Where(r => r.Enrolment!.ParticipantID == id);
+            }
+            else // Organiser
+            {
+                query = query.Where(r => r.Enrolment!.Category!.Event!.OrganiserID == id);
+            }
+
+            return await query.ToListAsync();
         }
 
         // GET: api/results/5
         [HttpGet("{id:int}")]
         public async Task<ActionResult<Result>> GetResult(int id)
         {
+            var role = User.GetRole();
+            var uid = User.GetUserId();
+
             var result = await _db.Results
+                                  .Include(r => r.Enrolment)
+                                      .ThenInclude(e => e!.Participant)
+                                  .Include(r => r.Enrolment)
+                                      .ThenInclude(e => e!.Category)
                                   .AsNoTracking()
                                   .FirstOrDefaultAsync(r => r.ResultID == id);
 
             if (result is null)
                 return NotFound(new { message = $"Result {id} was not found." });
+
+            bool allowed;
+            if (role == "Participant")
+            {
+                allowed = result.Enrolment!.ParticipantID == uid;
+            }
+            else // Organiser
+            {
+                var organiserId = await _db.Events
+                    .Where(ev => ev.EventID == result.Enrolment!.Category!.EventID)
+                    .Select(ev => ev.OrganiserID)
+                    .FirstAsync();
+                allowed = organiserId == uid;
+            }
+
+            if (!allowed)
+                return StatusCode(403, new { message = "You cannot view this result." });
 
             return result;
         }

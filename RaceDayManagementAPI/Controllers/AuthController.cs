@@ -94,8 +94,42 @@ namespace RaceDayManagementAPI.Controllers
             return Ok(new { user.UserID, user.FullName, user.Email, user.Role, user.CreatedAt });
         }
 
-        // No /logout endpoint needed — the client just discards the token.
-        // If you want one for symmetry, it's a no-op that returns 200.
+        // PUT: api/auth/me
+        [HttpPut("me")]
+        [Authorize]
+        public async Task<IActionResult> UpdateMe(User updated)
+        {
+            var id = User.GetUserId();
+            var existing = await _db.Users.FindAsync(id);
+            if (existing is null) return NotFound();
+
+            if (string.IsNullOrWhiteSpace(updated.FullName) ||
+                string.IsNullOrWhiteSpace(updated.Email))
+                return BadRequest(new { message = "FullName and Email are required." });
+
+            if (await _db.Users.AnyAsync(u => u.Email == updated.Email && u.UserID != id))
+                return Conflict(new { message = "That email address is already registered." });
+
+            existing.FullName = updated.FullName;
+            existing.Email = updated.Email;
+
+            // Role is NOT changeable here — that would let a Participant promote themselves.
+            // Password is optional; only replace if a new one was supplied.
+            if (!string.IsNullOrWhiteSpace(updated.PasswordHash))
+            {
+                if (updated.PasswordHash.Length < 6)
+                    return BadRequest(new { message = "Password must be at least 6 characters." });
+                existing.PasswordHash = BCrypt.Net.BCrypt.HashPassword(updated.PasswordHash);
+            }
+
+            await _db.SaveChangesAsync();
+
+            return Ok(new
+            {
+                message = "Profile updated.",
+                user = new { existing.UserID, existing.FullName, existing.Email, existing.Role }
+            });
+        }
 
         private string GenerateToken(User user)
         {
