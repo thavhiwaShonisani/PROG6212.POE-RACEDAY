@@ -1,19 +1,24 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using RaceDayManagementAPI.Data;
-using RaceDayManagementAPI.Models;
 using Microsoft.EntityFrameworkCore;
+using RaceDayManagementAPI.Data;
+using RaceDayManagementAPI.Helpers;
+using RaceDayManagementAPI.Models;
 
 namespace RaceDayManagementAPI.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class EventsController : ControllerBase
     {
         private static readonly string[] ValidTypes = { "Run", "Walk", "Cycle" };
 
         private readonly RaceDayDbContext _db;
         public EventsController(RaceDayDbContext db) => _db = db;
+
+        private int CurrentUserId => User.GetUserId();
 
         // GET: api/events
         [HttpGet]
@@ -42,17 +47,16 @@ namespace RaceDayManagementAPI.Controllers
 
         // POST: api/events
         [HttpPost]
+        [Authorize(Roles = "Organiser")]
         public async Task<ActionResult<Event>> CreateEvent(Event newEvent)
         {
             if (!ValidTypes.Contains(newEvent.EventType))
                 return BadRequest(new { message = "EventType must be Run, Walk or Cycle." });
 
-            if (!await _db.Users.AnyAsync(u => u.UserID == newEvent.OrganiserID))
-                return BadRequest(new { message = $"Organiser {newEvent.OrganiserID} does not exist." });
-
-            newEvent.EventID = 0;                 // let the store assign it
+            newEvent.EventID = 0;
+            newEvent.OrganiserID = CurrentUserId;
             newEvent.CreatedAt = DateTime.Now;
-            newEvent.Organiser = null;            // don't re-insert the organiser
+            newEvent.Organiser = null;
 
             _db.Events.Add(newEvent);
             await _db.SaveChangesAsync();
@@ -62,19 +66,19 @@ namespace RaceDayManagementAPI.Controllers
 
         // PUT: api/events/5
         [HttpPut("{id:int}")]
+        [Authorize(Roles = "Organiser")]
         public async Task<IActionResult> UpdateEvent(int id, Event updated)
         {
-            if (id != updated.EventID)
-                return BadRequest(new { message = "Route id and body EventID do not match." });
-
+            if (id != updated.EventID) return BadRequest(new { message = "Id mismatch." });
             if (!ValidTypes.Contains(updated.EventType))
                 return BadRequest(new { message = "EventType must be Run, Walk or Cycle." });
 
             var existing = await _db.Events.FindAsync(id);
-            if (existing is null)
-                return NotFound(new { message = $"Event {id} was not found." });
+            if (existing is null) return NotFound(new { message = $"Event {id} was not found." });
 
-            existing.OrganiserID = updated.OrganiserID;
+            if (existing.OrganiserID != CurrentUserId)
+                return StatusCode(403, new { message = "You can only edit events you organise." });
+
             existing.EventName = updated.EventName;
             existing.Description = updated.Description;
             existing.EventDate = updated.EventDate;
@@ -88,6 +92,7 @@ namespace RaceDayManagementAPI.Controllers
 
         // DELETE: api/events/5
         [HttpDelete("{id:int}")]
+        [Authorize(Roles = "Organiser")]
         public async Task<IActionResult> DeleteEvent(int id)
         {
             var raceEvent = await _db.Events
@@ -95,14 +100,15 @@ namespace RaceDayManagementAPI.Controllers
                                      .Include(e => e.Routes)
                                      .FirstOrDefaultAsync(e => e.EventID == id);
 
-            if (raceEvent is null)
-                return NotFound(new { message = $"Event {id} was not found." });
+            if (raceEvent is null) return NotFound(new { message = $"Event {id} was not found." });
+            if (raceEvent.OrganiserID != CurrentUserId)
+                return StatusCode(403, new { message = "You can only delete events you organise." });
 
             var categoryIds = raceEvent.Categories.Select(c => c.CategoryID).ToList();
             if (await _db.Enrolments.AnyAsync(en => categoryIds.Contains(en.CategoryID)))
-                return Conflict(new { message = "Cannot delete: participants are already enrolled in this event." });
+                return Conflict(new { message = "Cannot delete: participants are already enrolled." });
 
-            _db.Events.Remove(raceEvent);   // Categories + Routes cascade
+            _db.Events.Remove(raceEvent);
             await _db.SaveChangesAsync();
             return NoContent();
         }
@@ -114,10 +120,9 @@ namespace RaceDayManagementAPI.Controllers
             if (!await _db.Events.AnyAsync(e => e.EventID == id))
                 return NotFound(new { message = $"Event {id} was not found." });
 
-            return await _db.Categories
-                            .Where(c => c.EventID == id)
-                            .AsNoTracking()
-                            .ToListAsync();
+            return await _db.Categories.Where(c => c.EventID == id)
+                                       .AsNoTracking()
+                                       .ToListAsync();
         }
 
         // GET: api/events/5/routes
@@ -127,10 +132,9 @@ namespace RaceDayManagementAPI.Controllers
             if (!await _db.Events.AnyAsync(e => e.EventID == id))
                 return NotFound(new { message = $"Event {id} was not found." });
 
-            return await _db.Routes
-                            .Where(r => r.EventID == id)
-                            .AsNoTracking()
-                            .ToListAsync();
+            return await _db.Routes.Where(r => r.EventID == id)
+                                   .AsNoTracking()
+                                   .ToListAsync();
         }
     }
 }

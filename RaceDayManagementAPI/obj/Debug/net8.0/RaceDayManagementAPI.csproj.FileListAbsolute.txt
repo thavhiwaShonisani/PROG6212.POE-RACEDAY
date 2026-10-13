@@ -38,3 +38,11 @@ C:\Users\thavh\source\repos\RaceDayManagementAPI\RaceDayManagementAPI\bin\Debug\
 C:\Users\thavh\source\repos\RaceDayManagementAPI\RaceDayManagementAPI\bin\Debug\net8.0\Microsoft.EntityFrameworkCore.dll
 C:\Users\thavh\source\repos\RaceDayManagementAPI\RaceDayManagementAPI\bin\Debug\net8.0\Microsoft.EntityFrameworkCore.Abstractions.dll
 C:\Users\thavh\source\repos\RaceDayManagementAPI\RaceDayManagementAPI\bin\Debug\net8.0\Microsoft.EntityFrameworkCore.InMemory.dll
+C:\Users\thavh\source\repos\RaceDayManagementAPI\RaceDayManagementAPI\bin\Debug\net8.0\Microsoft.AspNetCore.Authentication.JwtBearer.dll
+C:\Users\thavh\source\repos\RaceDayManagementAPI\RaceDayManagementAPI\bin\Debug\net8.0\Microsoft.IdentityModel.Abstractions.dll
+C:\Users\thavh\source\repos\RaceDayManagementAPI\RaceDayManagementAPI\bin\Debug\net8.0\Microsoft.IdentityModel.JsonWebTokens.dll
+C:\Users\thavh\source\repos\RaceDayManagementAPI\RaceDayManagementAPI\bin\Debug\net8.0\Microsoft.IdentityModel.Logging.dll
+C:\Users\thavh\source\repos\RaceDayManagementAPI\RaceDayManagementAPI\bin\Debug\net8.0\Microsoft.IdentityModel.Protocols.dll
+C:\Users\thavh\source\repos\RaceDayManagementAPI\RaceDayManagementAPI\bin\Debug\net8.0\Microsoft.IdentityModel.Protocols.OpenIdConnect.dll
+C:\Users\thavh\source\repos\RaceDayManagementAPI\RaceDayManagementAPI\bin\Debug\net8.0\Microsoft.IdentityModel.Tokens.dll
+C:\Users\thavh\source\repos\RaceDayManagementAPI\RaceDayManagementAPI\bin\Debug\net8.0\System.IdentityModel.Tokens.Jwt.dll
