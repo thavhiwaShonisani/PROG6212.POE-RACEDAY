@@ -1,0 +1,69 @@
+﻿@model List<RaceDayMVC.Models.EnrolmentVm>
+@{ ViewData["Title"] = "My Enrolments"; }
+<div class="container mt-4">
+    <h1 class="fw-bold mb-4"> My Enrolments</h1>
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible">
+             @TempData["Success"]
+            <button class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible">
+            ⚠ @TempData["Error"]
+            <button class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (!Model.Any())
+    {
+        <div class="alert alert-info text-center py-5">
+            <h4>You haven't enrolled in any events yet</h4>
+            <a asp-action="Index" class="btn btn-primary mt-2">Browse Events →</a>
+        </div>
+    }
+    else
+    {
+        <div class="card shadow-sm">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Category</th>
+                            <th>Distance</th>
+                            <th>Entry Fee</th>
+                            <th>Enrolled On</th>
+                            <th>Status</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var e in Model.OrderByDescending(x => x.EnrolmentDate))
+                         {
+                            var cls = e.Status == "Active" ? "bg-success" : "bg-secondary";
+                            <tr>
+                                <td><strong>@e.Category?.CategoryName</strong></td>
+                                <td>@e.Category?.DistanceKm km</td>
+                                <td>R @e.Category?.EntryFee.ToString("F2")</td>
+                                <td>@e.EnrolmentDate.ToString("dd MMM yyyy")</td>
+                                <td><span class="badge @cls">@e.Status.ToUpper()</span></td>
+                                <td>
+                                    @if (e.Status == "Active")
+                                    {
+                                        <form asp-action="CancelEnrolment" asp-route-id="@e.EnrolmentID"
+                                           method="post" class="d-inline"
+                                              onsubmit="return confirm('Cancel this enrolment?');">
+                                            <button class="btn btn-sm btn-outline-danger">✖ 
+                                              Cancel</button>
+                                        </form>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+</div>

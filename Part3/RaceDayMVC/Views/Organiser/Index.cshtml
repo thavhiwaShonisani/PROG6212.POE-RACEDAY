@@ -1,0 +1,115 @@
+﻿@model RaceDayMVC.Models.DashboardVm
+@{ ViewData["Title"] = "Dashboard"; }
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="fw-bold"> Organiser Dashboard</h1>
+        <a asp-action="CreateEvent" class="btn btn-primary"> Create Event</a>
+    </div>
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible">
+             @TempData["Success"]
+            <button class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible">
+             @TempData["Error"]
+            <button class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card bg-primary text-white">
+                <div class="card-body text-center">
+                    <h2 class="display-5 fw-bold">@Model.Events.Count</h2>
+                    <p class="mb-0">Total Events</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-success text-white">
+                <div class="card-body text-center">
+                    <h2 class="display-5 fw-bold">@Model.EnrolmentCounts.Values.Sum()</h2>
+                    <p class="mb-0">Total Enrolments</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-warning text-dark">
+                <div class="card-body text-center">
+                    <h2 class="display-5 fw-bold">@Model.Events.Count(e => e.EventDate >= 
+                                             DateTime.Today)</h2>
+                    <p class="mb-0">Upcoming</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    @if (!Model.Events.Any())
+    {
+        <div class="alert alert-info text-center py-5">
+            <h4>No events yet</h4>
+            <a asp-action="CreateEvent" class="btn btn-primary mt-2">Create your first event</a>
+        </div>
+    }
+    else
+    {
+        <div class="card shadow-sm">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Event</th>
+                            <th>Date</th>
+                            <th>Type</th>
+                            <th>Enrolments</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var ev in Model.Events.OrderBy(e => e.EventDate))
+                        {
+                            var count = Model.EnrolmentCounts.TryGetValue(ev.EventID, out var c) ? c : 
+                              0;
+                            <tr>
+                                <td>
+                                    <strong>@ev.EventName</strong>
+                                    <div class="small text-muted"> @ev.Location · @ev.DistanceKm 
+                                      km</div>
+                                </td>
+                                <td>@ev.EventDate.ToString("dd MMM yyyy")</td>
+                                <td>
+                                    <span class="badge bg-@(ev.EventType == "Run" ? "danger" : 
+                                      ev.EventType == "Walk" ? "success" : "info")">
+                                        @ev.EventType.ToUpper()
+                                    </span>
+                                </td>
+                                <td><span class="badge bg-info fs-6">@count</span></td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a asp-action="EditEvent" asp-route-id="@ev.EventID" class="btn
+                                        btn-outline-primary" title="Edit">✏</a>
+                                        <a asp-action="Categories" asp-route-eventId="@ev.EventID"
+                                           class="btn btn-outline-secondary" title="Categories"></a>
+                                        <a asp-action="Enrolments" asp-route-eventId="@ev.EventID"
+                                           class="btn btn-outline-info" title="Enrolments"></a>
+                                        <a asp-action="CaptureResults" asp-route-eventId="@ev.EventID"
+                                           class="btn btn-outline-success" title="Capture Results"> </a>
+                                        <form asp-action="DeleteEvent" asp-route-id="@ev.EventID"
+                                              method="post" class="d-inline"
+                                              onsubmit="return confirm('Delete this event? This cannot
+                                            be undone.');">
+                                            <button class="btn btn-outline-danger"
+                                                    title="Delete"> </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+</div>

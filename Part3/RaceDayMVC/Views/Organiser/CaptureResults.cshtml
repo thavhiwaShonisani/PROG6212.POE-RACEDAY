@@ -1,0 +1,105 @@
+﻿@model List<RaceDayMVC.Models.EnrolmentVm>
+@{
+    ViewData["Title"] = "Capture Results";
+    int eventId = ViewBag.EventId ?? 0;
+    var results = ViewBag.Results as List<RaceDayMVC.Models.ResultVm> ?? new();
+}
+<div class="container mt-4">
+    <a asp-action="Index" class="btn btn-outline-secondary mb-3">← Back</a>
+    <h1 class="fw-bold mb-4"> Capture Results</h1>
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible">
+             @TempData["Success"]
+            <button class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible">
+            ⚠ @TempData["Error"]
+            <button class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (!Model.Any())
+    {
+        <div class="alert alert-info text-center py-5">
+            <h4>No enrolled participants</h4>
+            <p>Participants must enrol before you can capture their results.</p>
+        </div>
+    }
+    else
+    {
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <p class="text-muted small mb-3">
+                    Enter finish time as <code>HH:MM:SS</code> (e.g., <code>01:45:30</code>).
+                    For DNF, leave position empty and set status to <strong>DNF</strong>.
+                </p>
+                @foreach (var e in Model.OrderBy(x => x.Participant?.FullName))
+                {
+                    var existing = results.FirstOrDefault(r => r.EnrolmentID == e.EnrolmentID);
+                    <div class="border rounded p-3 mb-3">
+                        <div class="row g-2 align-items-center">
+                            <div class="col-md-4">
+                                <strong>@e.Participant?.FullName</strong>
+                                <div class="small text-muted">@e.Participant?.Email</div>
+                                <div class="small text-muted"> @e.Category?.CategoryName</div>
+                                @if (existing != null)
+                                {
+                                    <div class="small mt-1">
+                                        <span class="badge bg-primary">
+                                            @(existing.FinishTime?.ToString(@"hh\:mm\:ss") ?? "—")
+                                            · @(existing.Position?.ToString() ?? "—")
+                                            · @existing.Status
+                                        </span>
+                                    </div>
+                                }
+                            </div>
+                            <div class="col-md-8">
+                                <form asp-action="CaptureResult" method="post" class="row g-2">
+                                    <input type="hidden" name="eventId" value="@eventId" />
+                                    <input type="hidden" name="enrolmentId" value="@e.EnrolmentID" />
+                                    <input type="hidden" name="existingResultId"
+                                           value="@(existing?.ResultID ?? 0)" />
+                                    <div class="col-md-4">
+                                        <label class="form-label small fw-bold">Finish Time</label>
+                                        <input name="finishTime"
+                                               class="form-control form-control-sm"
+                                               placeholder="HH:MM:SS"
+                                               value="@(existing?.FinishTime?.ToString(@"hh\:mm\:ss") ??
+                                                                                          "")" />
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label small fw-bold">Position</label>
+                                        <input name="position"
+                                               type="number" min="1"
+                                               class="form-control form-control-sm"
+                                               value="@(existing?.Position?.ToString() ?? "")" />
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label small fw-bold">Status</label>
+                                        <select name="status" class="form-select form-select-sm">
+                                            <option value="Finished" selected="@(existing?.Status ==
+                                                                                          "Finished")">Finished</option>
+                                            <option value="DNF" selected="@(existing?.Status ==
+                                                                                          "DNF")">DNF</option>
+                                            <option value="DQ" selected="@(existing?.Status ==
+                                                                                          "DQ")">DQ</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-2 d-flex align-items-end">
+                                        <button class="btn btn-sm w-100 @(existing == null ?
+                                                                                      "btn-success" : "btn-warning")">
+                                            @(existing == null ? " Save" : "✏ Update")
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>

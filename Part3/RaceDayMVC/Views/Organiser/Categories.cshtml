@@ -1,0 +1,93 @@
+﻿@model List<RaceDayMVC.Models.CategoryVm>
+@{
+    ViewData["Title"] = "Categories";
+    int eventId = ViewBag.EventId ?? 0;
+    string eventName = ViewBag.EventName ?? "";
+}
+<div class="container mt-4">
+    <a asp-action="Index" class="btn btn-outline-secondary mb-3">← Back</a>
+    <h1 class="fw-bold mb-4"> Categories for "@eventName"</h1>
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible">
+             @TempData["Success"]
+            <button class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible">
+            ⚠ @TempData["Error"]
+            <button class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    <div class="row g-4">
+        <div class="col-md-7">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Existing Categories (@Model.Count)</h5>
+                </div>
+                <div class="card-body">
+                    @if (!Model.Any())
+                    {
+                        <p class="text-muted mb-0">No categories yet. Add one on the right →</p>
+                    }
+                    else
+                    {
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr><th>Name</th><th>Distance</th><th>Fee</th><th></th></tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var c in Model)
+                                {
+                                    <tr>
+                                        <td><strong>@c.CategoryName</strong></td>
+                                        <td>@c.DistanceKm km</td>
+                                        <td>R @c.EntryFee.ToString("F2")</td>
+                                        <td class="text-end">
+                                            <form asp-action="DeleteCategory"
+                                                  asp-route-eventId="@eventId" method="post"
+                                                  class="d-inline"
+                                                  onsubmit="return confirm('Delete this category?');">
+                                                <input type="hidden" name="id" value="@c.CategoryID" />
+                                                <button class="btn btn-sm btn-outline-danger">✖</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                </div>
+            </div>
+        </div>
+        <div class="col-md-5">
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"> Add Category</h5>
+                </div>
+                <div class="card-body">
+                    <form asp-action="AddCategory" asp-route-eventId="@eventId" method="post">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Category Name *</label>
+                            <input name="categoryName" class="form-control" placeholder="e.g., 10km
+                            Race" required />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Distance (km) *</label>
+                            <input name="distanceKm" type="number" step="0.01" min="0.01" value="10"
+                                   class="form-control" required />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Entry Fee (R) *</label>
+                            <input name="entryFee" type="number" step="0.01" min="0" value="0"
+                                   class="form-control" required />
+                        </div>
+                        <button class="btn btn-success w-100"> Add Category</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

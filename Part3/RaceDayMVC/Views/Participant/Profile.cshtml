@@ -1,0 +1,49 @@
+﻿@model RaceDayMVC.Models.MeResponseVm
+@{ ViewData["Title"] = "Profile"; }
+<div class="container mt-4">
+    <h1 class="fw-bold mb-4"> My Profile</h1>
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible">
+             @TempData["Success"]
+            <button class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible">
+            ⚠ @TempData["Error"]
+            <button class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    <div class="card shadow-sm" style="max-width:600px">
+        <div class="card-body">
+            <div class="text-center mb-3">
+                <div class="rounded-circle bg-primary text-white d-inline-flex align-items-center 
+                  justify-content-center"
+                     style="width:100px;height:100px;font-size:2.5rem">
+                    @(Model.FullName.Length > 0 ? Model.FullName.Substring(0, 1).ToUpper() : "?")
+                </div>
+                <h4 class="mt-2">@Model.FullName</h4>
+                <p class="text-muted mb-1">@Model.Email</p>
+                <span class="badge bg-info">@Model.Role</span>
+            </div>
+            <hr />
+            <form method="post">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Full Name</label>
+                    <input name="FullName" value="@Model.FullName" class="form-control" required />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Email</label>
+                    <input name="Email" value="@Model.Email" type="email" class="form-control" required 
+                      />
+                </div>
+                <input type="hidden" name="UserID" value="@Model.UserID" />
+                <input type="hidden" name="Role" value="@Model.Role" />
+                <input type="hidden" name="CreatedAt" value="@Model.CreatedAt.ToString("O")" />
+                <button class="btn btn-primary"> Save Changes</button>
+            </form>
+        </div>
+    </div>
+</div>

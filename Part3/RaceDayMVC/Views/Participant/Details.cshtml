@@ -1,0 +1,87 @@
+﻿@model RaceDayMVC.Models.EventVm
+@{
+    ViewData["Title"] = Model.EventName;
+    var categories = ViewBag.Categories as List<RaceDayMVC.Models.CategoryVm> ?? new();
+    var myCategoryIds = ViewBag.MyCategoryIds as HashSet<int> ?? new HashSet<int>();
+}
+<div class="container mt-4">
+    <a asp-action="Index" class="btn btn-outline-secondary mb-3">← Back</a>
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible">
+             @TempData["Success"]
+            <button class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible">
+            ⚠ @TempData["Error"]
+            <button class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (!string.IsNullOrEmpty(Model.BannerImageUrl))
+    {
+        <img src="@Model.BannerImageUrl" class="img-fluid rounded mb-3 w-100"
+             style="max-height:380px;object-fit:cover" alt="@Model.EventName" />
+    }
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <h1 class="fw-bold">@Model.EventName</h1>
+            <span class="badge bg-@(Model.EventType == "Run" ? "danger" : Model.EventType == "Walk" ? 
+              "success" : "info") fs-6">
+                @Model.EventType.ToUpper()
+            </span>
+            <hr />
+            <p><strong> Date:</strong> @Model.EventDate.ToString("dddd, dd MMMM yyyy")</p>
+            <p><strong> Location:</strong> @Model.Location</p>
+            <p><strong> Distance:</strong> @Model.DistanceKm km</p>
+            @if (Model.Organiser != null)
+            {
+                <p><strong> Organiser:</strong> @Model.Organiser.FullName</p>
+                 }
+            @if (!string.IsNullOrEmpty(Model.Description))
+            {
+                <hr />
+                <p>@Model.Description</p>
+            }
+        </div>
+    </div>
+    <h3 class="fw-bold mb-3"> Categories</h3>
+    @if (!categories.Any())
+    {
+        <div class="alert alert-info">No categories yet.</div>
+    }
+    else
+    {
+        <div class="row g-3">
+            @foreach (var cat in categories)
+            {
+                var joined = myCategoryIds.Contains(cat.CategoryID);
+                <div class="col-md-6">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-body">
+                            <h5 class="fw-bold">@cat.CategoryName</h5>
+                            <p class="mb-1"> @cat.DistanceKm km</p>
+                            <p class="mb-2"><strong>Entry Fee:</strong> R 
+                              @cat.EntryFee.ToString("F2")</p>
+                            @if (joined)
+                            {
+                                <span class="badge bg-success mb-2"> Already enrolled</span>
+                                <button class="btn btn-success w-100 mt-2" disabled> Enrolled</button>
+                            }
+                            else
+                            {
+                                <form asp-action="Enrol" method="post" class="mt-2">
+                                    <input type="hidden" name="categoryId" value="@cat.CategoryID" />
+                                    <input type="hidden" name="eventId" value="@Model.EventID" />
+                                    <button class="btn btn-primary w-100"> Enrol</button>
+                                </form>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>

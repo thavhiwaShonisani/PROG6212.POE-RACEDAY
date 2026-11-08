@@ -1,0 +1,107 @@
+﻿@using Microsoft.AspNetCore.Http
+@{
+    var loggedIn = Context.Session.GetString("JwtToken") != null;
+    var role = Context.Session.GetString("Role");
+    var name = Context.Session.GetString("FullName") ?? "";
+    var current = ViewContext.RouteData.Values["controller"]?.ToString();
+    string Active(string c) => current == c ? "active fw-bold" : "";
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] – RaceDay</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <style>
+            body { background: #f5f7fa; }
+            .navbar-brand { font-weight: 700; letter-spacing: 1px; }
+            .navbar-nav .nav-link.active { border-bottom: 2px solid #fff; }
+            .user-chip { background: rgba(255,255,255,.15); padding: 4px 12px; border-radius: 20px; }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+        <div class="container">
+            <a class="navbar-brand" asp-controller="Account" asp-action="Login"> RaceDay</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#nav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="nav">
+                <ul class="navbar-nav me-auto">
+                    @if (role == "Participant")
+                    {
+                        <li class="nav-item">
+                            <a class="nav-link @Active("Participant")"
+                               asp-controller="Participant" asp-action="Index"> Events</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="Participant"
+                               asp-action="MyEnrolments"> My Enrolments</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="Participant"
+                               asp-action="MyResults"> My Results</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="Participant"
+                               asp-action="Profile"> Profile</a>
+                        </li>
+                    }
+                    else if (role == "Organiser")
+                        
+                {
+<li class="nav-item">
+                        <a class="nav-link @Active("Organiser")"
+                           asp-controller="Organiser" asp-action="Index"> Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-controller="Organiser"
+                           asp-action="CreateEvent"> Create Event</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-controller="Organiser"
+                           asp-action="Profile"> Profile</a>
+                    </li>
+                    }
+                </ul>
+                <ul class="navbar-nav">
+                    @if (!loggedIn)
+                    {
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="Account"
+                               asp-action="Login">Login</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="Account"
+                               asp-action="Register">Register</a>
+                        </li>
+                    }
+                    else
+                    {
+                        <li class="nav-item">
+                            <span class="nav-link user-chip
+                            text-white">@name</span>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="Account"
+                               asp-action="Logout">Logout</a>
+                        </li>
+                    }
+                </ul>
+            </div>
+        </div>
+    </nav>
+    <main class="pb-5">
+        @RenderBody()
+    </main>
+    <footer class="border-top text-muted py-3 bg-white mt-5">
+        <div class="container text-center">© @DateTime.Now.Year RaceDay · South African sports </div>
+    </footer>
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

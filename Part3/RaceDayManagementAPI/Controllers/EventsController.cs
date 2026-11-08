@@ -1,0 +1,163 @@
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using RaceDayManagementAPI.Data;
+using RaceDayManagementAPI.Helpers;
+using RaceDayManagementAPI.Models;
+using RaceDayManagementAPI.Services;
+
+namespace RaceDayManagementAPI.Controllers
+{
+    [ApiController]
+    [Route("api/[controller]")]
+    [Authorize]
+    public class EventsController : ControllerBase
+    {
+        private static readonly string[] ValidTypes = { "Run", "Walk", "Cycle" };
+
+        private readonly RaceDayDbContext _db;
+        private readonly IBlobService _blobs;
+        public EventsController(RaceDayDbContext db, IBlobService blobs)
+        {
+            _db = db;
+            _blobs = blobs;
+        }
+
+        private int CurrentUserId => User.GetUserId();
+
+        // GET: api/events
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<Event>>> GetEvents()
+        {
+            return await _db.Events
+                            .Include(e => e.Organiser)
+                            .AsNoTracking()
+                            .ToListAsync();
+        }
+
+        // GET: api/events/5
+        [HttpGet("{id:int}")]
+        public async Task<ActionResult<Event>> GetEvent(int id)
+        {
+            var raceEvent = await _db.Events
+                                     .Include(e => e.Organiser)
+                                     .AsNoTracking()
+                                     .FirstOrDefaultAsync(e => e.EventID == id);
+
+            if (raceEvent is null)
+                return NotFound(new { message = $"Event {id} was not found." });
+
+            return raceEvent;
+        }
+
+        // POST: api/events
+        [HttpPost]
+        [Authorize(Roles = "Organiser")]
+        public async Task<ActionResult<Event>> CreateEvent(Event newEvent)
+        {
+            if (!ValidTypes.Contains(newEvent.EventType))
+                return BadRequest(new { message = "EventType must be Run, Walk or Cycle." });
+
+            newEvent.EventID = 0;
+            newEvent.OrganiserID = CurrentUserId;
+            newEvent.CreatedAt = DateTime.Now;
+            newEvent.Organiser = null;
+
+            _db.Events.Add(newEvent);
+            await _db.SaveChangesAsync();
+
+            return CreatedAtAction(nameof(GetEvent), new { id = newEvent.EventID }, newEvent);
+        }
+
+        // PUT: api/events/5
+        [HttpPut("{id:int}")]
+        [Authorize(Roles = "Organiser")]
+        public async Task<IActionResult> UpdateEvent(int id, Event updated)
+        {
+            if (id != updated.EventID) return BadRequest(new { message = "Id mismatch." });
+            if (!ValidTypes.Contains(updated.EventType))
+                return BadRequest(new { message = "EventType must be Run, Walk or Cycle." });
+
+            var existing = await _db.Events.FindAsync(id);
+            if (existing is null) return NotFound(new { message = $"Event {id} was not found." });
+
+            if (existing.OrganiserID != CurrentUserId)
+                return StatusCode(403, new { message = "You can only edit events you organise." });
+
+            existing.EventName = updated.EventName;
+            existing.Description = updated.Description;
+            existing.EventDate = updated.EventDate;
+            existing.Location = updated.Location;
+            existing.DistanceKm = updated.DistanceKm;
+            existing.EventType = updated.EventType;
+
+            await _db.SaveChangesAsync();
+            return NoContent();
+        }
+
+        // DELETE: api/events/5
+        [HttpDelete("{id:int}")]
+        [Authorize(Roles = "Organiser")]
+        public async Task<IActionResult> DeleteEvent(int id)
+        {
+            var raceEvent = await _db.Events
+                                     .Include(e => e.Categories)
+                                     .Include(e => e.Routes)
+                                     .FirstOrDefaultAsync(e => e.EventID == id);
+
+            if (raceEvent is null) return NotFound(new { message = $"Event {id} was not found." });
+            if (raceEvent.OrganiserID != CurrentUserId)
+                return StatusCode(403, new { message = "You can only delete events you organise." });
+
+            var categoryIds = raceEvent.Categories.Select(c => c.CategoryID).ToList();
+            if (await _db.Enrolments.AnyAsync(en => categoryIds.Contains(en.CategoryID)))
+                return Conflict(new { message = "Cannot delete: participants are already enrolled." });
+
+            _db.Events.Remove(raceEvent);
+            await _db.SaveChangesAsync();
+            return NoContent();
+        }
+
+        // GET: api/events/5/categories
+        [HttpGet("{id:int}/categories")]
+        public async Task<ActionResult<IEnumerable<Category>>> GetEventCategories(int id)
+        {
+            if (!await _db.Events.AnyAsync(e => e.EventID == id))
+                return NotFound(new { message = $"Event {id} was not found." });
+
+            return await _db.Categories.Where(c => c.EventID == id)
+                                       .AsNoTracking()
+                                       .ToListAsync();
+        }
+
+        // GET: api/events/5/routes
+        [HttpGet("{id:int}/routes")]
+        public async Task<ActionResult<IEnumerable<RaceRoute>>> GetEventRoutes(int id)
+        {
+            if (!await _db.Events.AnyAsync(e => e.EventID == id))
+                return NotFound(new { message = $"Event {id} was not found." });
+
+            return await _db.Routes.Where(r => r.EventID == id)
+                                   .AsNoTracking()
+                                   .ToListAsync();
+        }
+        // POST: api/events/5/banner — Organiser uploads a banner for own event
+        [HttpPost("{id:int}/banner")]
+        [Authorize(Roles = "Organiser")]
+        [RequestSizeLimit(10_000_000)] // 10 MB
+        public async Task<IActionResult> UploadBanner(int id, IFormFile file)
+        {
+            var ev = await _db.Events.FindAsync(id);
+            if (ev == null) return NotFound(new { message = $"Event {id} was not found." });
+            if (ev.OrganiserID != CurrentUserId)
+                return StatusCode(403, new { message = "You can only upload banners for your own events." });
+            if (file == null || file.Length == 0)
+                return BadRequest(new { message = "No file uploaded." });
+            var fileName = $"event-{id}-{Guid.NewGuid()}{Path.GetExtension(file.FileName)}";
+            ev.BannerImageUrl = await _blobs.UploadAsync(file, fileName);
+            await _db.SaveChangesAsync();
+            return Ok(new { bannerImageUrl = ev.BannerImageUrl });
+        }
+    }
+}

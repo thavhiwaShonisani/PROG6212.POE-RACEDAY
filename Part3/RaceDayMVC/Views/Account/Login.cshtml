@@ -1,0 +1,53 @@
+﻿@model RaceDayMVC.Models.LoginViewModel
+@{
+    ViewData["Title"] = "Login";
+}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-5">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white text-center">
+                    <h3 class="mb-0"> RaceDay</h3>
+                </div>
+                <div class="card-body">
+                    @if (TempData["Success"] != null)
+                    {
+                        <div class="alert alert-success alert-dismissible">
+                            @TempData["Success"]
+                            <button class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    }
+                    @if (ViewBag.Error != null)
+                    {
+                        <div class="alert alert-danger">@ViewBag.Error</div>
+                    }
+                    <form method="post">
+                        <div class="mb-3">
+                            <label asp-for="Email" class="form-label fw-bold">Email</label>
+                            <input asp-for="Email" type="email" class="form-control" required />
+                        </div>
+                        <div class="mb-3">
+                            <label asp-for="Password" class="form-label fw-bold">Password</label>
+                            <input asp-for="Password" type="password" class="form-control" required />
+                        </div>
+                        <button class="btn btn-primary w-100">Login</button>
+                    </form>
+                    <hr />
+                    <p class="text-center mb-0">
+                        Don't have an account? <a asp-action="Register">Register</a>
+                    </p>
+                </div>
+            </div>
+            <div class="card mt-3">
+                <div class="card-body small text-muted">
+                    <strong>Seeded demo accounts:</strong>
+                    <ul class="mb-0 mt-1">
+                        <li><strong>Organiser:</strong> <code>thabo.mokoena@raceday.co.za</code></li>
+                        <li><strong>Participant:</strong> <code>sarah.vanwyk@raceday.co.za</code></li>
+                    </ul>
+                    <em>Use whatever password you set in your Part 2 SeedData.</em>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
