@@ -1,103 +1,28 @@
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi.Models;
-using RaceDayManagementAPI.Data;
-using System.Text;
-using System.Text.Json.Serialization;
-using RaceDayManagementAPI.Services;
-using Microsoft.AspNetCore.Http;
+using RaceDayMVC.Services;
 
 var builder = WebApplication.CreateBuilder(args);
-
-builder.Services.AddDbContext<RaceDayDbContext>(options =>
-    options.UseInMemoryDatabase("RaceDayDb"));
-
-// ---- JWT authentication ----
-var jwtSection = builder.Configuration.GetSection("Jwt");
-var signingKey = new SymmetricSecurityKey(
-    Encoding.UTF8.GetBytes(jwtSection["Key"]!));
-
-builder.Services
-    .AddAuthentication(options =>
-    {
-        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-    })
-    .AddJwtBearer(options =>
-    {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            ValidIssuer = jwtSection["Issuer"],
-            ValidAudience = jwtSection["Audience"],
-            IssuerSigningKey = signingKey,
-            ClockSkew = TimeSpan.Zero     // no grace period on expiry
-        };
-    });
-builder.Services.AddHttpContextAccessor();
-builder.Services.AddSingleton<IBlobService, LocalBlobService>();
-
-builder.Services.AddAuthorization();
-
-builder.Services.AddControllers()
-    .AddJsonOptions(o =>
-    {
-        o.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
-        o.JsonSerializerOptions.WriteIndented = true;
-    });
-
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-
-builder.Services.AddSwaggerGen(options =>
+builder.Services.AddControllersWithViews();
+// Session
+builder.Services.AddDistributedMemoryCache();
+builder.Services.AddSession(o =>
 {
-    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
-    {
-        Name = "Authorization",
-        Type = SecuritySchemeType.Http,
-        Scheme = "bearer",
-        BearerFormat = "JWT",
-        In = ParameterLocation.Header,
-        Description = "Paste the token from /api/auth/login (no 'Bearer ' prefix)."
-    });
-
-    options.AddSecurityRequirement(new OpenApiSecurityRequirement
-    {
-        {
-            new OpenApiSecurityScheme
-            {
-                Reference = new OpenApiReference
-                {
-                    Type = ReferenceType.SecurityScheme,
-                    Id   = "Bearer"
-                }
-            },
-            Array.Empty<string>()
-        }
-    });
+    o.IdleTimeout = TimeSpan.FromMinutes(60);
+    o.Cookie.HttpOnly = true;
+    o.Cookie.IsEssential = true;
 });
-
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddHttpClient<ApiClient>();
 var app = builder.Build();
-
-using (var scope = app.Services.CreateScope())
+if (!app.Environment.IsDevelopment())
 {
-    var db = scope.ServiceProvider.GetRequiredService<RaceDayDbContext>();
-    db.Database.EnsureCreated();
+    app.UseExceptionHandler("/Account/Error");
+    app.UseHsts();
 }
-
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
-
 app.UseStaticFiles();
-app.UseAuthentication();   // must come before UseAuthorization
+app.UseSession();              // before UseRouting
+app.UseRouting();
 app.UseAuthorization();
-app.MapControllers();
-
+app.MapControllerRoute(
+    name: "default",
+    pattern: "{controller=Account}/{action=Login}/{id?}");
 app.Run();
