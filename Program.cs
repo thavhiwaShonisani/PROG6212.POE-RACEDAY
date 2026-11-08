@@ -5,6 +5,8 @@ using Microsoft.OpenApi.Models;
 using RaceDayManagementAPI.Data;
 using System.Text;
 using System.Text.Json.Serialization;
+using RaceDayManagementAPI.Services;
+using Microsoft.AspNetCore.Http;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -36,6 +38,8 @@ builder.Services
             ClockSkew = TimeSpan.Zero     // no grace period on expiry
         };
     });
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddSingleton<IBlobService, LocalBlobService>();
 
 builder.Services.AddAuthorization();
 
@@ -91,11 +95,9 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
-
-app.UseAuthentication();   // <-- MUST come before UseAuthorization
+app.UseStaticFiles();
+app.UseAuthentication();   // must come before UseAuthorization
 app.UseAuthorization();
-
 app.MapControllers();
 
 app.Run();
